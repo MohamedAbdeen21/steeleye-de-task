@@ -168,6 +168,9 @@ def uploadCSVtoS3(bucket: str, csv_path: str, region: str, object_name: str) -> 
     s3.upload_file(csv_path, bucket, object_name)
 
 def main():
+    """
+    Run the functions with hard-coded arguments
+    """
     target_url = "https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq=publication_date:%5B2021-01-17T00:00:00Z+TO+2021-01-19T23:59:59Z%5D&wt=xml&indent=true&start=0&rows=100"
     csv_path = "/tmp/data.csv"
     s3_bucket = "steeleye-de-task-bucket" # already created and have public read access
