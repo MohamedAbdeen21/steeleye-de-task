@@ -7,9 +7,12 @@ import csv
 import os
 import boto3
 
-logging.basicConfig(level=logging.INFO, filename="./data/logs.log",
-                    filemode="a",
-                    format="%(levelname)s: %(asctime)s - %(funcName)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    filename="./data/logs.log",
+    filemode="a",
+    format="%(levelname)s: %(asctime)s - %(funcName)s - %(message)s",
+)
 
 
 def extractZipUrl(url: str, index: int = 0) -> str:
@@ -45,7 +48,7 @@ def extractZipUrl(url: str, index: int = 0) -> str:
 
         logging.info("Downloaded URL. Parsing for ZIP ...")
         parsed_xml = parseString(xml_file.text).documentElement
-        documents = parsed_xml.getElementsByTagName('doc')
+        documents = parsed_xml.getElementsByTagName("doc")
         link_element = documents[index].childNodes[3]
         link = link_element.firstChild.nodeValue
         logging.info(f"Found ZIP link: {link}")
@@ -76,7 +79,7 @@ def downloadZipAndRead(url: str) -> list[Element]:
     unzipped_file = unzipped_files.namelist()[0]
     parsed_data = parse(unzipped_files.open(unzipped_file)).documentElement
 
-    data_items = parsed_data.getElementsByTagName('FinInstrm')
+    data_items = parsed_data.getElementsByTagName("FinInstrm")
     logging.info(f"found {len(data_items)} elements")
     return data_items
 
@@ -99,17 +102,20 @@ def extractToCSV(elements: list[Element], csv_path: str) -> None:
     None
     """
 
-    headers = [["FinInstrmGnlAttrbts.Id",
-                "FinInstrmGnlAttrbts.FullNm",
-                "FinInstrmGnlAttrbts.ClssfctnTp",
-                "FinInstrmGnlAttrbts.CmmdtyDerivInd",
-                "FinInstrmGnlAttrbts.NtnlCcy",
-                "Issr"]]
+    headers = [
+        [
+            "FinInstrmGnlAttrbts.Id",
+            "FinInstrmGnlAttrbts.FullNm",
+            "FinInstrmGnlAttrbts.ClssfctnTp",
+            "FinInstrmGnlAttrbts.CmmdtyDerivInd",
+            "FinInstrmGnlAttrbts.NtnlCcy",
+            "Issr",
+        ]
+    ]
 
     # Issr is not included because it is not in the same tag as these fields.
     # We add it explicitly after extracting these fields.
-    tags = ['Id', 'FullNm', 'ClssfctnTp',
-            'CmmdtyDerivInd', 'NtnlCcy']
+    tags = ["Id", "FullNm", "ClssfctnTp", "CmmdtyDerivInd", "NtnlCcy"]
 
     rows = []
     for element in elements:
@@ -117,11 +123,9 @@ def extractToCSV(elements: list[Element], csv_path: str) -> None:
         info = element.firstChild.firstChild
 
         for tag in tags:
-            row.append(info.getElementsByTagName(tag)[0]
-                       .firstChild.nodeValue)
+            row.append(info.getElementsByTagName(tag)[0].firstChild.nodeValue)
 
-        row.append(element.getElementsByTagName('Issr')[0]
-                   .firstChild.nodeValue)
+        row.append(element.getElementsByTagName("Issr")[0].firstChild.nodeValue)
         rows.append(row)
     logging.info("Successfully parsed data, Writing to CSV ...")
 
@@ -129,7 +133,7 @@ def extractToCSV(elements: list[Element], csv_path: str) -> None:
         os.mkdir(os.path.dirname(csv_path))
         logging.info(f"Created directory {csv_path}")
 
-    with open(csv_path, 'w') as handle:
+    with open(csv_path, "w") as handle:
         writer = csv.writer(handle)
         writer.writerows(headers + rows)
 
@@ -137,10 +141,11 @@ def extractToCSV(elements: list[Element], csv_path: str) -> None:
 
     return None
 
+
 def uploadCSVtoS3(bucket: str, csv_path: str, region: str, object_name: str) -> None:
     """
     Upload the CSV file to S3 Bucket
-    
+
     Parameters
     ----------
     bucket: str
@@ -161,11 +166,12 @@ def uploadCSVtoS3(bucket: str, csv_path: str, region: str, object_name: str) -> 
     FileNotFoundError
         If the provided csv_path is invalid
     """
-    if '.csv' not in csv_path or not os.path.exists(csv_path):
+    if ".csv" not in csv_path or not os.path.exists(csv_path):
         raise FileNotFoundError
     logging.info(f"Uploading to bucket {bucket}")
-    s3 = boto3.client('s3', region_name = region)
+    s3 = boto3.client("s3", region_name=region)
     s3.upload_file(csv_path, bucket, object_name)
+
 
 def main():
     """
@@ -173,13 +179,13 @@ def main():
     """
     target_url = "https://registers.esma.europa.eu/solr/esma_registers_firds_files/select?q=*&fq=publication_date:%5B2021-01-17T00:00:00Z+TO+2021-01-19T23:59:59Z%5D&wt=xml&indent=true&start=0&rows=100"
     csv_path = "/tmp/data.csv"
-    s3_bucket = "steeleye-de-task-bucket" # already created and have public read access
-    s3_object_name = 'data.csv'
+    # already created and have public read access
+    s3_bucket = "steeleye-de-task-bucket"
+    s3_object_name = "data.csv"
     aws_region = "me-central-1"
 
-    extractToCSV(downloadZipAndRead(extractZipUrl(target_url)),
-                 csv_path=csv_path)
-    uploadCSVtoS3(s3_bucket,csv_path, aws_region, s3_object_name)
+    extractToCSV(downloadZipAndRead(extractZipUrl(target_url)), csv_path=csv_path)
+    uploadCSVtoS3(s3_bucket, csv_path, aws_region, s3_object_name)
 
     logging.info("Terminated successfully")
 
