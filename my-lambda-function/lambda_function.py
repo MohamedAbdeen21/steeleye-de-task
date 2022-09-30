@@ -169,7 +169,7 @@ def uploadCSVtoS3(bucket: str, csv_path: str, region: str, object_name: str) -> 
     s3.upload_file(csv_path, bucket, object_name)
 
 
-def lambda_handler(event: dict, context) -> None:
+def lambda_handler(event: dict, context) -> dict:
     """
     Run the functions with hard-coded arguments
     """
@@ -190,3 +190,4 @@ def lambda_handler(event: dict, context) -> None:
     uploadCSVtoS3(s3_bucket, CSV_PATH, aws_region, s3_object_name)
 
     logger.info("Terminated successfully")
+    return {"message":"success"}
